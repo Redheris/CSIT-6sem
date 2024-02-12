@@ -1,37 +1,50 @@
 ﻿#include <iostream>
-#include <omp.h>
+#include <cmath>
+
+// Число pi
+#define PI 3.1415926535897932384626433832795
 
 using namespace std;
 
 // Рассматриваемая функция
-double func(double x) {
-	return 1.0 / (1.0 + x * x);
+double func(double a1, double b1, double a2, double b2, double x, double y) {
+	double e = exp(sin(PI * x) * cos(PI * y));
+	return (e + 1) / ((b1 - a1) * (b2 - a2));
 }
 
-void integral(const double a, const double b,
+void integral(
+	const double a1, const double b1,
+	const double a2, const double b2,
 	const double h, double* res)
 {
-	int i, n;
-	n = (int)((b - a) / h); // количество точек сетки интегрирования
-	// Цикл вычисления интеграла (Формула Симпсона):
-	// Лоакальные переменные для значений сумм внутри формуле
-	double sum1 = 0.0, sum2 = 0.0;
-	double height = (b - a) / (2 * n);	// Высота трапеции
-	for (i = 1; i < n; i++)
-		sum1 += func(a + (2 * i - 1) * height);
-	for (i = 1; i < n - 1; i++)
-		sum2 += func(a + 2 * i * height);
-	*res = (height / 3) * (func(a) + func(b) + 4 * sum1 + 2 * sum2);
+	int i, j, n, m;
+	double x, y;
+	n = (int)((b1 - a1) / h); // количество точек сетки интегрирования по x
+	m = (int)((b2 - a2) / h); // количество точек сетки интегрирования по y
+	// Лоакальная переменная для значения суммы
+	double sum = 0.0;
+	double height1 = (b1 - a1) / n;
+	double height2 = (b2 - a2) / m;
+	// Цикл вычсления интеграла
+	for (i = 0; i < n - 1; i++) {
+		x = a1 + i * height1 + height1 / 2.0;
+		for (j = 0; j < m - 1; j++) {
+			y = a2 + j * height2 + height2 / 2.0;
+			sum += height1 * height2 * func(a1, b1, a2, b2, x, y);
+		}
+	}
+	*res = sum;
 }
 
 double experiment(double* res)
 {
 	double stime, ftime;	// время начала и конца расчета
-	double a = 0.0;			// левая граница интегрирования
-	double b = 1e6;			// правая граница интегрирования
+	// Границы интегрирования 
+	double a1 = 0, b1 = 16;
+	double a2 = 0, b2 = 16;
 	double h = 0.001;		// шаг интегрирования
 	stime = clock();
-	integral(a, b, h, res);	// вызов функции интегрирования
+	integral(a1, b1, a2, b2, h, res);	// вызов функции интегрирования
 	ftime = clock();
 	return (ftime - stime) / CLOCKS_PER_SEC;
 }
