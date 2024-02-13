@@ -17,7 +17,7 @@ void integral(
 	const double a2, const double b2,
 	const double h, double* res)
 {
-	int i, j, n, m;
+	int n, m;
 	n = (int)((b1 - a1) / h); // количество точек сетки интегрирования по x
 	m = (int)((b2 - a2) / h); // количество точек сетки интегрирования по y
 	// Лоакальная переменная для значения суммы
@@ -26,31 +26,16 @@ void integral(
 	double height2 = (b2 - a2) / m;
 	// Цикл вычсления интеграла
 	// 1-ый вариант распараллеливания
-//	double x, y;
-////#pragma omp parallel for private(x) // ускоряет?
-//	for (i = 0; i < n - 1; i++) {
-//		x = a1 + i * height1 + height1 / 2.0;
-//#pragma omp parallel for private(y) reduction(+: sum)
-//		for (j = 0; j < m - 1; j++) {
-//			y = a2 + j * height2 + height2 / 2.0;
-//			sum += height1 * height2 * func(a1, b1, a2, b2, x, y);
-//		}
-//	}
-
-	// 2-ой вариант распараллеливания
-	double* x = new double[n - 1];
-	double* y = new double[m - 1];
-#pragma omp parallel for
-	for (i = 0; i < n - 1; i++)
-		x[i] = a1 + i * height1 + height1 / 2.0;
-#pragma omp parallel for
-	for (j = 0; j < m - 1; j++)
-		y[j] = a2 + j * height2 + height2 / 2.0;
-
-	for (i = 0; i < n - 1; i++)
-#pragma omp parallel for reduction(+: sum)
-		for (j = 0; j < m - 1; j++)
-			sum += height1 * height2 * func(a1, b1, a2, b2, x[i], y[j]);
+	double x, y;
+#pragma omp parallel for private(x) reduction(+: sum)
+	for (int i = 0; i < n - 1; i++) {
+		x = a1 + i * height1 + height1 / 2.0;
+#pragma omp parallel for private(y) reduction(+: sum)
+		for (int j = 0; j < m - 1; j++) {
+			y = a2 + j * height2 + height2 / 2.0;
+			sum += height1 * height2 * func(a1, b1, a2, b2, x, y);
+		}
+	}
 	*res = sum;
 }
  
@@ -75,7 +60,7 @@ int main()
 	double min_time;	// минимальное время работы реализации алгоритма
 	double max_time;	// максимальное время работы реализации алгоритма
 	double avg_time;	// среднее время работы реализации алгоритма
-	int numbExp = 10;	// количество запусков программы
+	int numbExp = 1;	// количество запусков программы
 	// первый запуск
 	min_time = max_time = avg_time = experiment(&res);
 	// оставшиеся запуски
