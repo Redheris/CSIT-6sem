@@ -25,9 +25,8 @@ void integral(
 	double height1 = (b1 - a1) / n;
 	double height2 = (b2 - a2) / m;
 	// Цикл вычсления интеграла
-	// 1-ый вариант распараллеливания
 	double x, y;
-#pragma omp parallel for private(x) reduction(+: sum)
+#pragma omp parallel for private(x)
 	for (int i = 0; i < n - 1; i++) {
 		x = a1 + i * height1 + height1 / 2.0;
 #pragma omp parallel for private(y) reduction(+: sum)
@@ -60,7 +59,7 @@ int main()
 	double min_time;	// минимальное время работы реализации алгоритма
 	double max_time;	// максимальное время работы реализации алгоритма
 	double avg_time;	// среднее время работы реализации алгоритма
-	int numbExp = 1;	// количество запусков программы
+	int numbExp = 10;	// количество запусков программы
 	// первый запуск
 	min_time = max_time = avg_time = experiment(&res);
 	// оставшиеся запуски
