@@ -29,13 +29,13 @@ def cond_oper(): Int = {
 }
 
 def cycles(): Unit = {
-  var str: String = readLine("1. Enter a string: ")
+  var str: String = readLine("1. Sum of digits. Enter a string: ")
   var sum: Int = 0
   for (c <- str)
     if (c.isDigit)
       sum += c.toInt - 48
   println(s"Sum of digits: $sum")
-  str = readLine("2. Enter a string: ")
+  str = readLine("2. Mult of letter codes. Enter a string: ")
   var mulCodes: Long = 1
   for (c <- str)
     if (c.isLetter)
@@ -60,13 +60,16 @@ def cycles(): Unit = {
 }
 
 def matching(): Unit = {
-  var str: String = readLine("1. Enter a string: ")
+  var str: String = readLine("1. Car number check. Enter a string: ")
   val regexAutoNumber: Regex = "[a-zA-Z][0-9]{3}[a-zA-Z]{2}".r
   println(regexAutoNumber.matches(str))
-  str = readLine("2. Enter a password string: ")
+  str = readLine("2. Password check. Enter a password string: ")
   var flag = true
   if (str.length < 8)
     println("Password should be at least 8 characters long")
+    flag = false
+  else if (str.matches(".*[?#<>%@/ \t].*"))
+    println("Password contains unacceptable symbol(s)")
     flag = false
   else if (!str.matches(".*[a-z].*"))
     println("Password should contain at least one lowercase letter")
@@ -81,7 +84,7 @@ def matching(): Unit = {
     println("Password should contain at least one special character")
     flag = false
   println(flag)
-  str = readLine("3. Enter a date string: ")
+  str = readLine("3. Date check. Enter a date string: ")
   val regexDate: Regex = "([0-9]?[0-9])\\.([0-9]?[0-9])\\.([0-9]{4})".r
   if (!regexDate.matches(str))
     println("Incorrect date format")
