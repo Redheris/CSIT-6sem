@@ -53,9 +53,10 @@ void ProcessInitialization(double*& pMatrix, double* &pVector,
 	pVector = new double[Size];
 	pResult = new double[Size];
 	// Initialization of the matrix and the vector elements
-	DummyDataInitialization(pMatrix, pVector, Size);
-	//RandomDataInitialization(pMatrix, pVector, Size);
+	//DummyDataInitialization(pMatrix, pVector, Size);
+	RandomDataInitialization(pMatrix, pVector, Size);
 }
+
 // Function for formatted matrix output
 void PrintMatrix(double* pMatrix, int RowCount, int ColCount) {
 	int i, j; // Loop variables
@@ -164,18 +165,18 @@ int main() {
 	// Memory allocation and definition of objects' elements
 	ProcessInitialization(pMatrix, pVector, pResult, Size);
 	// The matrix and the vector output
-	printf("Initial Matrix \n");
-	PrintMatrix(pMatrix, Size, Size);
-	printf("Initial Vector \n");
-	PrintVector(pVector, Size);
+	//printf("Initial Matrix \n");
+	//PrintMatrix(pMatrix, Size, Size);
+	//printf("Initial Vector \n");
+	//PrintVector(pVector, Size);
 	// Execution of Gauss algorithm
 	start = clock();
 	SerialResultCalculation(pMatrix, pVector, pResult, Size);
 	finish = clock();
 	duration = (finish - start) / CLOCKS_PER_SEC;
 	// Printing the result vector
-	printf("\n Result Vector: \n");
-	PrintVector(pResult, Size);
+	//printf("\n Result Vector: \n");
+	//PrintVector(pResult, Size);
 	// Printing the execution time of Gauss method
 	printf("\n Time of execution: %f\n", duration);
 	// Computational process termination

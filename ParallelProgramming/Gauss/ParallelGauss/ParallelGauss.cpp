@@ -229,4 +229,4 @@ int main() {
 	// Program termination
 	ProcessTermination(pMatrix, pVector, pResult);
 	return 0;
-}
+}
