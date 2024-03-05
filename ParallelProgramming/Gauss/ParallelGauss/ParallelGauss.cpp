@@ -136,6 +136,28 @@ void RandomDataInitialization(double* pMatrix, double* pVector,
 	}
 }
 
+// Function for initialization of the matrix with given data
+// and the vector elements
+void GivenDataInitialization(double* pMatrix, double* pVector,
+	int Size) {
+	double* pVectorClone = new double[Size] {
+		-9, -146, -10, -26, 37
+	};
+	double* pMatrixClone = new double[Size*Size] {
+		1, 1, 4, 4, 9,
+		2, 2, 17, 17, 82,
+		2, 0, 3, -1, 4,
+		0, 1, 4, 12, 27,
+		1, 2, 2, 10, 0,
+	};
+	for (int i = 0; i < Size; i++) {
+		pVector[i] = pVectorClone[i];
+		for (int j = 0; j < Size; j++) {
+			pMatrix[i * Size + j] = pMatrixClone[i * Size + j];
+		}
+	}
+}
+
 // Function for formatted matrix output
 void PrintMatrix(double* pMatrix, int RowCount, int ColCount) {
 	int i, j; // Loop variables
@@ -169,7 +191,8 @@ void ProcessInitialization(double*& pMatrix, double*& pVector,
 	pResult = new double[Size];
 	// Initialization of the matrix and the vector elements
 	//DummyDataInitialization(pMatrix, pVector, Size);
-	RandomDataInitialization(pMatrix, pVector, Size);
+	/*RandomDataInitialization(pMatrix, pVector, Size);*/
+	GivenDataInitialization(pMatrix, pVector, Size);
 }
 
 void ProcessTermination(double* pMatrix, double* pVector, double*
@@ -221,6 +244,11 @@ int main() {
 	ParallelResultCalculation(pMatrix, pVector, pResult, Size);
 	finish = omp_get_wtime();
 	duration = finish - start;
+
+	// Printing the result vector
+	printf("\n Result Vector: \n");
+	PrintVector(pResult, Size);
+
 	// Testing the result
 	TestResult(pMatrix, pVector, pResult, Size);
 	// Printing the time spent by parallel Gauss algorithm
