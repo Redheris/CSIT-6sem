@@ -1,5 +1,5 @@
 import scala.io.StdIn.readLine
-import scala.math.Numeric.BigDecimalIsFractional.abs
+import scala.math.abs
 
 def sqrt(x: Double): Double = {
   def sqrtIter(guess: Double): Double =
@@ -8,17 +8,13 @@ def sqrt(x: Double): Double = {
   def improve(guess: Double): Double =
     (guess + x / guess) / 2
   def isGoodEnough(guess: Double) =
-    abs(guess * guess - x) < 1e-50
+    abs(guess * guess - x) < 1.0e-14 * x
   sqrtIter(1)
 }
 
-def factorial (n: Int) : Int = {
-  if (n <= 1) 1;
-  else n * factorial(n - 1);
-}
-
 def pascal (c: Int, r: Int): Int = {
-  factorial(r) / (factorial(c) * factorial(r - c))
+  if (r == 0 || c == r - 1 || c == 0) return 1;
+  pascal(c - 1, r - 1) + pascal(c, r - 1)
 }
 
 def balance(chars: List[Char]): Boolean = {
@@ -52,7 +48,7 @@ def main(): Unit = {
       println("Pascal triangle");
       val col = readLine("Enter column = ").toInt;
       val row = readLine("Enter row = ").toInt;
-      println(pascal(col, row));
+      println(pascal(col, row + 1));
     case 3 => println(balance(readLine("Balance. Enter a string = ").toList));
     case 4 =>
       println("Count changes")
