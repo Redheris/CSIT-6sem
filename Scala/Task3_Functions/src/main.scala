@@ -23,7 +23,7 @@ def pascal (c: Int, r: Int): Int = {
 
 def balance(chars: List[Char]): Boolean = {
   def balanceIter(i: Int, opens: Int) : Boolean = {
-    if (i >= chars.length) true
+    if (i >= chars.length) opens == 0
     else if (chars(i).equals('('))
       balanceIter(i + 1, opens + 1)
     else if (chars(i).equals(')'))
