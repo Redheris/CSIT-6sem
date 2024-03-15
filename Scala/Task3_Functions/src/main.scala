@@ -1,13 +1,13 @@
 import scala.io.StdIn.readLine
 import scala.math.Numeric.BigDecimalIsFractional.abs
 
-def sqrt(x: Double): BigDecimal = {
-  def sqrtIter(guess: BigDecimal): BigDecimal =
+def sqrt(x: Double): Double = {
+  def sqrtIter(guess: Double): Double =
     if isGoodEnough(guess) then guess
     else sqrtIter(improve(guess))
-  def improve(guess: BigDecimal): BigDecimal =
+  def improve(guess: Double): Double =
     (guess + x / guess) / 2
-  def isGoodEnough(guess: BigDecimal) =
+  def isGoodEnough(guess: Double) =
     abs(guess * guess - x) < 1e-50
   sqrtIter(1)
 }
