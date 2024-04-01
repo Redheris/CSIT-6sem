@@ -3,15 +3,22 @@
 #include <conio.h>
 #include <time.h>
 #include <math.h>
+#include <iostream>
 #include <omp.h>
 
+using namespace std;
+
+double epsilon = 0.01;
+
 typedef struct {
-	int PivotRow;
-	double MaxValue;
+	int PivotRow; double MaxValue;
 } TThreadPivotRow;
+int* pSerialPivotPos; // The Number of pivot rows selected at the//iterations
+int* pSerialPivotIter; // The Iterations, at which the rows were pivots
 
 int* pPivotPos; // The number of pivot rows selected at the iterations
-int* pPivotIter; // The iterations, at which the rows were pivots// Finding the pivot row
+int* pPivotIter; // The iterations, at which the rows were pivots
+
 int ParallelFindPivotRow(double* pMatrix, int Size, int Iter) {
 	int PivotRow = -1; // The index of the pivot row
 	double MaxValue = 0; // The value of the pivot element
@@ -30,8 +37,6 @@ int ParallelFindPivotRow(double* pMatrix, int Size, int Iter) {
 				ThreadPivotRow.MaxValue = fabs(pMatrix[i * Size + Iter]);
 			}
 		}
-		printf("\n Local thread (id = %i) pivot row : %i ",
-			omp_get_thread_num(), ThreadPivotRow.PivotRow);
 #pragma omp critical
 		{
 			if (ThreadPivotRow.MaxValue > MaxValue) {
@@ -39,9 +44,27 @@ int ParallelFindPivotRow(double* pMatrix, int Size, int Iter) {
 				PivotRow = ThreadPivotRow.PivotRow;
 			}
 		} // pragma omp critical
-	}// pragma omp parallel
+	} // pragma omp parallel
 	return PivotRow;
-}// Column elimination
+}
+
+// Back substation
+void ParallelBackSubstitution(double* pMatrix, double* pVector,
+	double* pResult, int Size) {
+	int RowIndex, Row;
+	for (int i = Size - 1; i >= 0; i--) {
+		RowIndex = pPivotPos[i];
+		pResult[i] = pVector[RowIndex] / pMatrix[Size * RowIndex + i];
+#pragma omp parallel for private (Row)
+		for (int j = 0; j < i; j++) {
+			Row = pPivotPos[j];
+			pVector[Row] -= pMatrix[Row * Size + i] * pResult[i];
+			pMatrix[Row * Size + i] = 0;
+		}
+	}
+}
+
+// Column elimination
 void ParallelColumnElimination(double* pMatrix, double* pVector,
 	int Pivot, int Iter, int Size) {
 	double PivotValue, PivotFactor;
@@ -56,9 +79,9 @@ void ParallelColumnElimination(double* pMatrix, double* pVector,
 			pVector[i] -= PivotFactor * pVector[Pivot];
 		}
 	}
-}// Gaussian elimination
-void ParallelGaussianElimination(double* pMatrix, double* pVector,
-	int Size) {
+}
+// Gaussian elimination
+void ParallelGaussianElimination(double* pMatrix, double* pVector, int Size) {
 	int Iter; // The number of the iteration of the Gaussian
 	// elimination
 	int PivotRow; // The number of the current pivot row
@@ -69,61 +92,38 @@ void ParallelGaussianElimination(double* pMatrix, double* pVector,
 		pPivotIter[PivotRow] = Iter;
 		ParallelColumnElimination(pMatrix, pVector, PivotRow, Iter, Size);
 	}
-}// Back substation
-void ParallelBackSubstitution(double* pMatrix, double* pVector,
-	double* pResult, int Size) {
-	int RowIndex, Row;
-	for (int i = Size - 1; i >= 0; i--) {
-		RowIndex = pPivotPos[i];
-		pResult[i] = pVector[RowIndex] / pMatrix[Size * RowIndex + i];
-#pragma omp parallel for private (Row)
-		for (int j = 0; j < i; j++) {
-			Row = pPivotPos[j];
-			pVector[Row] -= pMatrix[Row * Size + i] * pResult[i];
-			pMatrix[Row * Size + i] = 0;
-		}
-	}
-}// Function for the execution of Gauss algorithm
-void ParallelResultCalculation(double* pMatrix, double* pVector,
-	double* pResult, int Size) {
+}
+
+void ParallelResultCalculation(double* pMatrix, double* pVector, double* pResult, int Size) {
 	// Memory allocation
 	pPivotPos = new int[Size];
 	pPivotIter = new int[Size];
 	for (int i = 0; i < Size; i++) {
 		pPivotIter[i] = -1;
 	}
-	/*int GlobalPivotPos;
-	GlobalPivotPos = ParallelFindPivotRow(pMatrix, Size, 0);
-	printf("\n Global pivot row : %i ", GlobalPivotPos);*/
-
 	ParallelGaussianElimination(pMatrix, pVector, Size);
 	ParallelBackSubstitution(pMatrix, pVector, pResult, Size);
-
+	int GlobalPivotPos; GlobalPivotPos = ParallelFindPivotRow(pMatrix, Size, 0);
+	ParallelFindPivotRow(pMatrix, Size, 0);
 	// Memory deallocation
 	delete[] pPivotPos;
 	delete[] pPivotIter;
-}
-// Function for simple initialization of the matrix
-// and the vector elements
-void DummyDataInitialization(double* pMatrix, double* pVector, int
-	Size) {
+}
+
+void DummyDataInitialization(double* pMatrix, double* pVector, int Size) {
 	int i, j; // Loop variables
 	for (i = 0; i < Size; i++) {
 		pVector[i] = i + 1;
 		for (j = 0; j < Size; j++) {
-			if (j <= i)
+			if (j == i)
 				pMatrix[i * Size + j] = 1;
 			else
 				pMatrix[i * Size + j] = 0;
 		}
 	}
 }
-
-// Function for random initialization of the matrix
-// and the vector elements
-void RandomDataInitialization(double* pMatrix, double* pVector,
-	int Size) {
-	int i, j; // Loop variables
+void RandomDataInitialization(double* pMatrix, double* pVector, int Size) {
+	int i, j;
 	srand(unsigned(clock()));
 	for (i = 0; i < Size; i++) {
 		pVector[i] = rand() / double(1000);
@@ -158,6 +158,23 @@ void GivenDataInitialization(double* pMatrix, double* pVector,
 	}
 }
 
+// Function for memory allocation and definition of the objects elements
+void ProcessInitialization(double*& pMatrix, double*& pVector, double*& pResult, double*& x1, double*& x2, int& Size) {
+	// Setting the size of the matrix and the vector
+	do {
+		printf("\nEnter size of the matrix and the vector: ");
+		cin >> Size;
+		printf("\nChosen size = %d \n", Size);
+		if (Size <= 0)
+			printf("\nSize of objects must be greater than 0!\n");
+	} while (Size <= 0); // Memory allocation
+	pMatrix = new double[Size * Size];
+	pVector = new double[Size];
+	pResult = new double[Size];
+	x1 = new double[Size];
+	x2 = new double[Size];
+	DummyDataInitialization(pMatrix, pVector, Size);
+}
 // Function for formatted matrix output
 void PrintMatrix(double* pMatrix, int RowCount, int ColCount) {
 	int i, j; // Loop variables
@@ -167,49 +184,98 @@ void PrintMatrix(double* pMatrix, int RowCount, int ColCount) {
 		printf("\n");
 	}
 }
+
 // Function for formatted vector output
 void PrintVector(double* pVector, int Size) {
 	int i;
 	for (i = 0; i < Size; i++)
 		printf("%7.4f ", pVector[i]);
 }
-
-// Function for memory allocation and definition of the objects elements
-void ProcessInitialization(double*& pMatrix, double*& pVector,
-	double*& pResult, int& Size) {
-	// Setting the size of the matrix and the vector
-	do {
-		printf("\nEnter size of the matrix and the vector: ");
-		scanf_s("%d", &Size);
-		printf("\nChosen size = %d \n", Size);
-		if (Size <= 0)
-			printf("\nSize of objects must be greater than 0!\n");
-	} while (Size <= 0);
-	// Memory allocation
-	pMatrix = new double[Size * Size];
-	pVector = new double[Size];
-	pResult = new double[Size];
-	// Initialization of the matrix and the vector elements
-	//DummyDataInitialization(pMatrix, pVector, Size);
-	/*RandomDataInitialization(pMatrix, pVector, Size);*/
-	GivenDataInitialization(pMatrix, pVector, Size);
+// Finding the pivot row
+int FindPivotRow(double* pMatrix, int Size, int Iter) {
+	int PivotRow = -1; // The index of the pivot row
+	int MaxValue = 0; // The value of the pivot element
+	int i; // Loop variable
+	// Choose the row, that stores the maximum element
+	for (i = 0; i < Size; i++) {
+		if ((pSerialPivotIter[i] == -1) &&
+			(fabs(pMatrix[i * Size + Iter]) > MaxValue)) {
+			PivotRow = i;
+			MaxValue = fabs(pMatrix[i * Size + Iter]);
+		}
+	}
+	return PivotRow;
+}
+// Column elimination
+void SerialColumnElimination(double* pMatrix, double* pVector,
+	int Pivot, int Iter, int Size) {
+	double PivotValue, PivotFactor;
+	PivotValue = pMatrix[Pivot * Size + Iter];
+	for (int i = 0; i < Size; i++) {
+		if (pSerialPivotIter[i] == -1) {
+			PivotFactor = pMatrix[i * Size + Iter] / PivotValue; for (int j = Iter; j < Size; j++) { pMatrix[i * Size + j] -= PivotFactor * pMatrix[Pivot * Size + j]; }pVector[i] -= PivotFactor * pVector[Pivot];
+		}
+	}
+}
+// Gaussian elimination
+void SerialGaussianElimination(double* pMatrix, double* pVector, int Size) {
+	int Iter; // The number of the iteration of the Gaussian
+	// elimination
+	int PivotRow; // The number of the current pivot row
+	for (Iter = 0; Iter < Size; Iter++) {
+		// Finding the pivot row
+		PivotRow = FindPivotRow(pMatrix, Size, Iter);
+		pSerialPivotPos[Iter] = PivotRow;
+		pSerialPivotIter[PivotRow] = Iter;
+		SerialColumnElimination(pMatrix, pVector, PivotRow, Iter, Size);
+	}
 }
 
-void ProcessTermination(double* pMatrix, double* pVector, double*
-	pResult) {
+// Back substution
+void SerialBackSubstitution(double* pMatrix, double* pVector,
+	double* pResult, int Size) {
+	int RowIndex, Row;
+	for (int i = Size - 1; i >= 0; i--) {
+		RowIndex = pSerialPivotPos[i];
+		pResult[i] = pVector[RowIndex] / pMatrix[Size * RowIndex + i];
+		for (int j = 0; j < i; j++) {
+			Row = pSerialPivotPos[j];
+			pVector[Row] -= pMatrix[Row * Size + i] * pResult[i];
+			pMatrix[Row * Size + i] = 0;
+		}
+	}
+}
+
+// Function for the execution of Gauss algorithm
+void SerialResultCalculation(double* pMatrix, double* pVector,
+	double* pResult, int Size) {
+	// Memory allocation
+	pSerialPivotPos = new int[Size];
+	pSerialPivotIter = new int[Size];
+	for (int i = 0; i < Size; i++) {
+		pSerialPivotIter[i] = -1;
+	}
+	// Gaussian elimination
+	SerialGaussianElimination(pMatrix, pVector, Size);
+	// Back substitution
+	SerialBackSubstitution(pMatrix, pVector, pResult, Size);
+	// Memory deallocation
+	delete[] pSerialPivotPos;
+	delete[] pSerialPivotIter;
+}
+
+// Function for computational process termination
+void ProcessTermination(double* pMatrix, double* pVector, double* pResult, double* x1, double* x2) {
 	delete[] pMatrix;
 	delete[] pVector;
 	delete[] pResult;
+	delete[] x1;
+	delete[] x2;
 }
-
 // Function for testing the result
 void TestResult(double* pMatrix, double* pVector,
 	double* pResult, int Size) {
-	/* Buffer for storing the vector, that is a result of multiplication
-	of the linear system matrix by the vector of unknowns */
 	double* pRightPartVector;
-	// Flag, that shows wheather the right parts
-	// vectors are identical or not
 	int equal = 0;
 	double Accuracy = 1.e-6; // Comparison accuracy
 	pRightPartVector = new double[Size];
@@ -225,11 +291,70 @@ void TestResult(double* pMatrix, double* pVector,
 			equal = 1;
 	}
 	if (equal == 1)
-		printf("\nThe result of the parallel Gauss algorithm is NOT correct."
+		printf("The result of the parallel Gauss algorithm is NOT correct."
 			"Check your code.");
 	else
-		printf("\nThe result of the parallel Gauss algorithm is correct.");
-	delete[] pRightPartVector;
+		printf("The result of the parallel Gauss algorithm is correct.")
+		; delete[] pRightPartVector;
+}
+
+void PrallelZeindelMatrix(double* pMatrix, double* pVector,
+	double* pResult, int Size) {
+	for (int i = 0; i < Size; i++) {
+		for (int j = 0; j < Size; j++) {
+			if (i != j)
+				pMatrix[i * Size + j] = 1.0 * pMatrix[i * Size + j] / (-pMatrix[i * Size + i]);
+		}
+	}
+	for (int i = 0; i < Size; i++) {
+		pVector[i] = 1.0 * pVector[i] / pMatrix[i * Size + i];
+	}
+	for (int i = 0; i < Size; i++) {
+		pMatrix[i * Size + i] = 0.0;
+	}
+}
+
+double* RaznostVector(double* A, double* B, int Size) {
+	for (int i = 0; i < Size; i++) {
+		A[i] = A[i] - B[i];
+	}
+	return A;
+}
+
+long double NormaVector(double* A, int Size) {
+	long double b = 0.0;
+	for (int i = 0; i < Size; i++) {
+		b = b + 1.0 * A[i] * A[i];
+	}
+	return sqrt(b);
+}
+void Zeidel(double* pMatrix, double* pVector, double* pResult, double* x1, double* x2, int Size) {
+#pragma omp parallel for
+	for (int i = 0; i < Size; i++) {
+		x1[i] = 0.0;
+	}
+	while (true) {
+#pragma omp parallel for
+		for (int i = 0; i < Size; i++) {
+			x2[i] = 0;
+		}
+#pragma omp parallel for
+		for (int i = 0; i < Size; i++) {
+			for (int j = 0; j < Size; j++) {
+				x2[i] = x2[i] + pMatrix[i * Size + j] * x1[1];
+			}
+			x2[i] = x2[i] + pVector[i];
+		}
+		if (NormaVector(RaznostVector(x1, x2, Size), Size) < epsilon)
+			break;
+#pragma omp parallel for
+		for (int i = 0; i < Size; i++) {
+			x1[i] = x2[i];
+		}
+	}
+	for (int i = 0; i < Size; i++) {
+		pResult[i] = x2[i];
+	}
 }
 
 int main() {
@@ -238,23 +363,17 @@ int main() {
 	double* pResult; // The result vector
 	int Size; // The size of the matrix and the vectors
 	double start, finish, duration;
+	double* x1;
+	double* x2;
 	// Data initialization
-	ProcessInitialization(pMatrix, pVector, pResult, Size);
+	ProcessInitialization(pMatrix, pVector, pResult, x1, x2, Size);
 	start = omp_get_wtime();
-	ParallelResultCalculation(pMatrix, pVector, pResult, Size);
+	PrallelZeindelMatrix(pMatrix, pVector, pResult, Size);
+	Zeidel(pMatrix, pVector, pResult, x1, x2, Size);
 	finish = omp_get_wtime();
 	duration = finish - start;
-
-	// Printing the result vector
-	printf("\n Result Vector: \n");
-	PrintVector(pResult, Size);
-
-	// Testing the result
-	TestResult(pMatrix, pVector, pResult, Size);
-	// Printing the time spent by parallel Gauss algorithm
 	printf("\n Time of execution: %f\n", duration);
-
-	// Program termination
-	ProcessTermination(pMatrix, pVector, pResult);
+	ProcessTermination(pMatrix, pVector, pResult, x1, x2);
 	return 0;
+
 }
