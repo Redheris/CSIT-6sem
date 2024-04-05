@@ -1,0 +1,3 @@
+class BinaryRelation {
+  relationMatrix: Matrix
+}
