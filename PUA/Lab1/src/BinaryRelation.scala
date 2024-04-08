@@ -96,14 +96,18 @@ class BinaryRelation(matrix: MatrixSquareBoolean) {
   }
 
   def closureTransitive: BinaryRelation = {
-    var clone = this
+    var prev = this
     var result = (this o this) + this
 
-    while (clone.relationMatrix.getMatrix != result.relationMatrix.getMatrix) {
-      clone = result
+    while (prev.relationMatrix.getMatrix != result.relationMatrix.getMatrix) {
+      prev = result
       result = (result o this) + result
     }
     result
+  }
+
+  def closureEquivalence: BinaryRelation = {
+    this.closureSymmetric.closureReflexive.closureTransitive
   }
 
   def displayInfo(name: String = "relation"): Unit = {

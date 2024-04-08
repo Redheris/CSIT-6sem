@@ -26,4 +26,14 @@ def main(): Unit = {
   (ro & g).display("ro & g:")
   (ro \ g).display("ro \\ g:")
   (ro o g).display("ro o g:")
+
+  ro.closureSymmetric.display("ro symmetric closure")
+  ro.closureReflexive.display("ro reflexive closure")
+  ro.closureTransitive.display("ro transitive closure:")
+  ro.closureEquivalence.display("ro equivalence closure")
+
+  g.closureSymmetric.display("g symmetric closure")
+  g.closureReflexive.display("g reflexive closure")
+  g.closureTransitive.display("g transitive closure:")
+  g.closureEquivalence.display("g equivalence closure")
 }
