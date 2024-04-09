@@ -35,65 +35,38 @@ def task_1(): Unit = {
   println
 }
 
+def findOrderStatistic[T](lst: List[T], k: Int, f: (T, T) => Boolean = (x: Int, y: Int) => {x < y}): T = {
+  if (lst.isEmpty) throw new IllegalArgumentException("List is empty")
+  if (k < 1 || k > lst.length) throw new IllegalArgumentException("Invalid k")
+
+  val pivot = lst.head
+  var less = List.empty[T]
+  var greater = List.empty[T]
+
+  for (x <- lst.tail) {
+    if (f(x, pivot)) less = x :: less
+    else greater = x :: greater
+  }
+
+  if (k <= less.length) findOrderStatistic(less, k, f)
+  else if (k > less.length + 1) findOrderStatistic(greater, k - less.length - 1, f)
+  else pivot
+}
+
 def task_2(): Unit = {
-  println("====================== Task-2 ======================")
+  println(s"4th order statistic in [9,2,5,3,10,1] (${List(9,2,5,3,10,1).sorted}):" +
+    s" ${findOrderStatistic(List(9,2,5,3,10,1), 4)}")
+  println(s"1st order statistic in [9,2,5,3,10,1] (${List(9,2,5,3,10,1).sorted}):" +
+    s" ${findOrderStatistic(List(9,2,5,3,10,1), 1)}")
+  println(s"6th order statistic in [10,25,2,64,16,28,5] (${List(10, 25, 2, 64, 16, 28, 5).sorted}):" +
+    s"  ${findOrderStatistic(List(10, 25, 2, 64, 16, 28, 5), 6)}")
+  println(s"4th order statistic in [9.1,2.7,2,3,10,10.1] (${List(9.1,2.7,2,3,10,10.1).sorted}):" +
+    s" ${findOrderStatistic(List(9.1,2.7,2,3,10,10.1), 4, _ < _)}")
+  println(s"4th order statistic in [\"aaa\", \"aba\", \"abc\", \"aab\"] (${List("aaa", "aba", "abc", "aab").sorted}):" +
+    s" ${findOrderStatistic(List("aaa", "aba", "abc", "aab"), 4, _ < _)}")
   println
+
 }
-def findOrderStatistic(array: Array[Int], k: Int): Int = {
-
-  def iter(lst: List[Int], mid: Int, midVal: Int, ): Int = {
-
-    k match {
-      case mid => k
-      case k if k < mid =>
-    }
-  }
-
-  iter (lst.tail, 1, lst.head)
-}
-
-  def orderStatistic[T](lst: List[T], k: Int)(lesser: (T, T) => Boolean): T = {
-    def orderStatisticHelper(lst: List[T], mid: Int, midVal: T, begins: Int, left: List[T], right: List[T]): T = {
-      if (lst.isEmpty)
-        if (k == mid)
-          midVal
-        else if (k < mid)
-          orderStatisticHelper(left.tail, begins, left.head, begins, List[T](), List[T]())
-        else
-          orderStatisticHelper(right.tail, mid + 1, right.head, mid + 1, List[T](), List[T]())
-      else if (lesser(lst.head, midVal))
-        orderStatisticHelper(lst.tail, mid + 1, midVal, begins, lst.head :: left, right)
-      else
-        orderStatisticHelper(lst.tail, mid, midVal, begins, left, lst.head :: right)
-    }
-
-    orderStatisticHelper(lst.tail, 1, lst.head, 1, List[T](), List[T]())
-  }
-
-  var left = 0
-  var right = array.length
-
-  while (true) {
-    val mid = partition(array, left, right)
-    if (mid == k) return array(mid)
-    else if (k < mid) right = mid
-    else left = mid + 1
-  }
-}
-
-def quickSelect[T](list: List[T], k: Int)(implicit ord: Ordering[T]): T = {
-  if (list.isEmpty) throw new NoSuchElementException("List is empty")
-  if (k < 1 || k > list.length) throw new IllegalArgumentException("Invalid k")
-
-  val pivotIndex = Random.nextInt(list.length)
-  val (pivot, rest) = list.splitAt(pivotIndex)
-  val (less, greater) = rest.partition(_ < pivot.head)
-
-  if (k <= less.length) quickSelect(less, k)
-  else if (k > less.length + 1) quickSelect(greater, k - less.length - 1)
-  else pivot.head
-}
-
 
 def primeFrom(a: Int): LazyList[Int] = {
   def nextPrime(x: Int, buf: LazyList[Int]): LazyList[Int] = {
