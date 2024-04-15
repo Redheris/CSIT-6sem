@@ -63,25 +63,22 @@ void ProcessTermination(complex<double>*& inputSignal,
 }
 void BitReversing(complex<double>* inputSignal,
 	complex<double>* outputSignal, int size) {
-	int j = 0, i = 0;
-	while (i < size)
-	{
-		if (j > i)
-		{
-			outputSignal[i] = inputSignal[j];
-			outputSignal[j] = inputSignal[i];
+	int bitsCount = 0;
+	// bitsCount = log2(size)
+	for (int tmp_size = size; tmp_size > 1; tmp_size /= 2)
+		bitsCount++;
+	// ind - index in input array
+	// revInv - index in ouput 
+	for (int ind = 0; ind < size; ind++) {
+		int mask = 1 << (bitsCount - 1);
+		int revInd = 0;
+#pragma omp parallel for
+		for (int i = 0; i < bitsCount; i++) { // bit-reversing
+			bool val = ind & mask;
+			revInd |= val << i;
+			mask = mask >> 1;
 		}
-		else
-			if (j == i)
-				outputSignal[i] = inputSignal[i];
-		int m = size >> 1;
-		while ((m >= 1) && (j >= m))
-		{
-			j -= m;
-			m = m >> 1;
-		}
-		j += m;
-		i++;
+		outputSignal[revInd] = inputSignal[ind];
 	}
 }
 __inline void Butterfly(complex<double>* signal,
@@ -119,8 +116,8 @@ void ParallelFFTCalculation(complex<double>* signal, int size) {
 		int butterflyOffset = 1 << (p + 1);
 		int butterflySize = butterflyOffset >> 1;
 		double coeff = PI / butterflySize;
-		for (int i = 0; i < size / butterflyOffset; i++)
 #pragma omp parallel for
+		for (int i = 0; i < size / butterflyOffset; i++)
 			for (int j = 0; j < butterflySize; j++)
 				Butterfly(signal, complex<double>(cos(-j * coeff),
 					sin(-j * coeff)), j + i * butterflyOffset, butterflySize);
