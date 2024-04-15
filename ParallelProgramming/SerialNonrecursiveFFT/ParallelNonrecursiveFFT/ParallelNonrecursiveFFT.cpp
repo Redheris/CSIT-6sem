@@ -3,6 +3,7 @@
 #include <cmath>
 #include <complex>
 #include <time.h>
+#include <omp.h>
 using namespace std;
 #define PI (3.14159265358979323846)
 //Function for simple initialization of input signal elements
@@ -109,10 +110,56 @@ void SerialFFT(complex<double>* inputSignal,
 	BitReversing(inputSignal, outputSignal, size);
 	SerialFFTCalculation(outputSignal, size);
 }
+
+void ParallelFFTCalculation(complex<double>* signal, int size) {
+	int m = 0;
+	for (int tmp_size = size; tmp_size > 1; tmp_size /= 2, m++);
+	for (int p = 0; p < m; p++)
+	{
+		int butterflyOffset = 1 << (p + 1);
+		int butterflySize = butterflyOffset >> 1;
+		double coeff = PI / butterflySize;
+		for (int i = 0; i < size / butterflyOffset; i++)
+#pragma omp parallel for
+			for (int j = 0; j < butterflySize; j++)
+				Butterfly(signal, complex<double>(cos(-j * coeff),
+					sin(-j * coeff)), j + i * butterflyOffset, butterflySize);
+	}
+}
+
+void ParallelFFT(complex<double>* inputSignal,
+	complex<double>* outputSignal, int size) {
+	BitReversing(inputSignal, outputSignal, size);
+	ParallelFFTCalculation(outputSignal, size);
+}
+
 void PrintSignal(complex<double>* signal, int size) {
 	cout << "Result signal" << endl;
 	for (int i = 0; i < size; i++)
 		cout << signal[i] << endl;
+}
+
+void TestResult(complex<double>* inputSignal,
+	complex<double>* outputSignal, int size)
+{
+	// Buffer for storing the result of serial FFT
+	complex<double>* testSerialSignal;
+	double Accuracy = 1.e-6; // Comparison accuracy
+	// Flag, that shows whether the vectors are identical
+	int equal = 0;
+	int i; // Loop variable
+	testSerialSignal = new complex<double>[size];
+	SerialFFT(inputSignal, testSerialSignal, size);
+	for (i = 0; i < size; i++)
+	{
+		if (abs(outputSignal[i] - testSerialSignal[i]) >= Accuracy)
+			equal = 1;
+	}
+	if (equal == 1)
+		printf("The results of serial and parallel algorithms are NOT identical. Check your code.");
+	else
+			printf("The results of serial and parallel algorithms are identical.");
+	delete[] testSerialSignal;
 }
 int main() {
 	complex<double>* inputSignal = NULL;
@@ -133,13 +180,15 @@ int main() {
 	{
 		startTime = clock();
 		// FFT computation
-		SerialFFT(inputSignal, outputSignal, size);
+		ParallelFFT(inputSignal, outputSignal, size);
 		duration = (clock() - startTime) / CLOCKS_PER_SEC;
 		if (duration < minDuration)
 			minDuration = duration;
 	}
 	cout << setprecision(6);
 	cout << "Execution time is " << minDuration << " s. " << endl;
+
+	TestResult(inputSignal, outputSignal, size);
 
 	//Result signal output
 	//PrintSignal(outputSignal, size);
