@@ -25,6 +25,14 @@ def weightChipsCur (potato: BigInt)(waterPotato: Double)(waterChips: Double): Do
   weightСhips(potato, waterPotato, waterChips)
 }
 
+/*def weightChipsCur (potato: BigInt): Double => Double => Double = {
+  (waterPotato: Double) => {
+    (waterChips: Double) => {
+      weightСhips(potato, waterPotato, waterChips)
+    }
+  }
+}*/
+
 weightChipsCur(90)
 weightChipsCur(90)(0.9)
 weightChipsCur(90)(0.9)(0.1)
@@ -46,6 +54,8 @@ def strToColAlpha(str: String) : Int = {
 }
 
 strToSumDigits("12dsd34")
+strToColDigits("12dsd34")
+strToColAlpha("12dsd34")
 
 // Task 2 B
 def compareString(f: String => Int): (String, String) => Boolean = {
@@ -82,14 +92,9 @@ val getOpereationFunc: PartialFunction[String, (Double, Double) => Double] = {
   case _ => (_, _) => -1
 }
 
-def evalExpr(a: Double, b: Double, f: (Double, Double) => Double) : Double = {
-  f(a, b)
-}
 
 def evaluate(input: String): Double = {
   val expr = input.split(" ")
-  // With extra function
-  /*evalExpr(expr(0).toDouble, expr(2).toDouble, getOpereationFunc(expr(1)))*/
 
   // Without extra function
   getOpereationFunc(expr(1))(expr(0).toDouble, expr(2).toDouble)
