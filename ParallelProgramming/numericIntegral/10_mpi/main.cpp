@@ -21,7 +21,7 @@
 //	n = (int)((b - a) / h);
 //	sum = 0.0;
 //
-//	for (i = 0; i < n; i++)
+//	for (i = rank; i < n; i += size)
 //	{
 //		x = a + i * h + h / 2.0;
 //		sum += func(x) * h;

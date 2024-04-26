@@ -22,11 +22,11 @@ void integral(const double a, const double b,
 	double sum1 = 0.0, sum2 = 0.0;
 	double height = (b - a) / (2 * n); // Высота трапеции
 
-	for (i = 1; i < n; i++)
+	for (i = rank; i < n; i += size)
 		sum1 += func(a + (2 * i - 1) * height);
 	MPI_Reduce(&sum1, &resSum1, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-	for (i = 1; i < n - 1; i++)
+	for (i = rank; i < n - 1; i += size)
 		sum2 += func(a + 2 * i * height);
 	MPI_Reduce(&sum2, &resSum2, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
