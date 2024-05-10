@@ -40,7 +40,7 @@ abstract class PostSet extends PostSetInterface:
    * Question: Can we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def filter(p: Post => Boolean): PostSet = ???
+  def filter(p: Post => Boolean): PostSet = filterAcc(p, new Empty)
 
   /**
    * This is a helper method for `filter` that propagates the accumulated posts.
@@ -53,7 +53,7 @@ abstract class PostSet extends PostSetInterface:
    * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def union(that: PostSet): PostSet = ???
+  def union(that: PostSet): PostSet
 
   /**
    * Returns the post from this set which has the greatest repost count.
@@ -64,7 +64,7 @@ abstract class PostSet extends PostSetInterface:
    * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def mostReposted: Post = ???
+  def mostReposted: Post
 
   /**
    * Returns a list containing all posts of this set, sorted by repost count
@@ -75,7 +75,7 @@ abstract class PostSet extends PostSetInterface:
    * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def descendingByRepost: PostList = ???
+  def descendingByRepost: PostList
 
   /**
    * The following methods are already implemented
@@ -105,7 +105,7 @@ abstract class PostSet extends PostSetInterface:
   def foreach(f: Post => Unit): Unit
 
 class Empty extends PostSet:
-  def filterAcc(p: Post => Boolean, acc: PostSet): PostSet = ???
+  def filterAcc(p: Post => Boolean, acc: PostSet): PostSet = acc
 
   /**
    * The following methods are already implemented
@@ -119,9 +119,23 @@ class Empty extends PostSet:
 
   def foreach(f: Post => Unit): Unit = ()
 
+  /**
+   * The following methods added for this assignment
+   */
+
+  def union(that: PostSet): PostSet = that
+
+  override def mostReposted: Post = throw new NoSuchElementException
+  override def descendingByRepost: PostList = Nil
+
+
 class NonEmpty(elem: Post, left: PostSet, right: PostSet) extends PostSet:
 
-  def filterAcc(p: Post => Boolean, acc: PostSet): PostSet = ???
+  def filterAcc(p: Post => Boolean, acc: PostSet): PostSet = {
+    val leftAcc = left.filterAcc(p, acc)
+    val rightAcc = right.filterAcc(p, leftAcc)
+    if p(elem) then rightAcc.incl(elem) else rightAcc
+  }
 
 
   /**
@@ -156,6 +170,31 @@ class NonEmpty(elem: Post, left: PostSet, right: PostSet) extends PostSet:
     left.foreach(f)
     right.foreach(f)
 
+    /**
+     * The following methods are already implemented
+     */
+
+  def union(that: PostSet): PostSet = {
+    left.union(right.union(that.incl(elem)))
+  }
+
+  override def mostReposted: Post = {
+    def compare(post: Post, set: PostSet): Post = {
+      try {
+        val mostRep = set.mostReposted
+        if (post.reposts > mostRep.reposts) post else mostRep
+      } catch {
+        case _: NoSuchElementException => post
+      }
+    }
+    compare(compare(elem, left), right)
+  }
+
+  override def descendingByRepost: PostList = {
+    val most = mostReposted
+    new Cons(most, remove(most).descendingByRepost)
+  }
+
 trait PostList:
   def head: Post
   def tail: PostList
@@ -178,16 +217,18 @@ object GoogleVsApple:
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
 
-  lazy val googlePosts: PostSet = ???
-  lazy val applePosts: PostSet = ???
+  lazy val googlePosts: PostSet = PostReader.allPosts.filter(post => google.exists(kwd => post.text.contains(kwd)))
+  lazy val applePosts: PostSet = PostReader.allPosts.filter(post => apple.exists(kwd => post.text.contains(kwd)))
 
   /**
    * A list of all posts mentioning a keyword from either apple or google,
    * sorted by the number of reposts.
    */
-  lazy val trending: PostList = ???
+  lazy val trending: PostList = (googlePosts union applePosts).descendingByRepost
 
-object Main extends App:
+@main
+def main(): Unit = {
   // Print the trending posts
   GoogleVsApple.trending foreach println
+}
 
